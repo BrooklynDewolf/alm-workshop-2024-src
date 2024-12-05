@@ -1,0 +1,44 @@
+name: Golang Docker Build
+
+on:
+  # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+  push:
+    branches:
+      - '**'
+  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
+  release:
+    types:
+      - published
+
+env:
+  CONTAINER_REPOSITORY: quay.io/brooklyndewolf # PUT YOUR OWN USERNAME HERE
+  CONTAINER_IMAGE: alm-workshop
+  GOLANG_VERSION: 1.23
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Quay.io login
+      - name: Login to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        uses: docker/metadata-action@v4
+        id: meta
+        with:
+          images: ${{ env.CONTAINER_REPOSITORY }}/${{ env.CONTAINER_IMAGE }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
